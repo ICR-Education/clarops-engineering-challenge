@@ -1,0 +1,18 @@
+- `[x]` 1. Startup and Configuration (SETUP.md)
+  - `[x]` Copy `example.env` to `.env`
+  - `[x]` Start the application and validate that Docker compose and the DB boot up
+  - `[x]` Test the `/api/health` endpoint
+- `[/]` 2. Modeling and Database (DDL)
+  - `[x]` Write `docker/init-scripts/db/02-schema.sql` (trace_state and trace_event)
+  - `[ ]` Restart containers (`docker-compose down -v` and `up --build`) to force creation.
+- `[ ]` 3. Core Implementation in Spring Boot
+  - `[ ]` Create DTOs using Java 21 Records (Noting Lombok technical debt)
+  - `[ ]` Create JPA Entities and Repositories (with concurrency via `@Version`)
+  - `[ ]` Implement "Watchdog" Service (Strict Fintech Validations, Lazy TTL)
+  - `[ ]` Implement REST Controller
+- `[ ]` 4. Unit and E2E Testing
+  - `[ ]` Unit Tests for validations (Idempotency and Strict Rejections)
+  - `[ ]` Hurl Tests (Full Saga: Started, Waiting, Expired, Completed)
+- `[ ]` 5. Final Documentation Refinement
+  - `[ ]` Build `TASKS.md` and `AI_USAGE.md` for the repository.
+  - `[ ]` Update `README.md` (and additional files) using the exact notes, tone, and words of the technical lead to denote seniority (e.g. Local Integration Magic, Watchdog vs Datadog, Idempotency 200 OK, etc).

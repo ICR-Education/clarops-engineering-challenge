@@ -11,7 +11,7 @@ spring:
       file: ${DOCKER_COMPOSE_FILE:docker/docker-compose.yml}
       lifecycle-management: start-only
   datasource:
-    url: jdbc:postgresql://localhost:5432/clarops_challenge
+    url: jdbc:postgresql://localhost:5433/clarops_challenge
     username: clarops
     password: CHANGE_ME
     driver-class-name: org.postgresql.Driver

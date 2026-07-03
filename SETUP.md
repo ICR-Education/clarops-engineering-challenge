@@ -33,11 +33,13 @@ Then edit `docker/.env` and replace the placeholder values:
 
 | Variable          | Description                        | Default              |
 |-------------------|------------------------------------|----------------------|
-| `PG_HOST_PORT`    | Host port mapped to PostgreSQL     | `5432`               |
+| `PG_HOST_PORT`    | Host port mapped to PostgreSQL     | `5433`               |
 | `PG_USERNAME`     | PostgreSQL user                    | `clarops`            |
 | `PG_PASSWORD`     | PostgreSQL user password           | `CHANGE_ME`          |
 | `PG_DATABASE`     | Database name                      | `clarops_challenge`  |
 | `PG_ADMIN_PASSWORD` | Password for the `postgres` admin user | `CHANGE_ME_ADMIN` |
+
+> **DX Note:** The default port is set to `5433` instead of the standard `5432`. This is a deliberate Developer Experience (DX) decision since most Software Engineers already have a local PostgreSQL instance running natively on MacOS (which silently hijacks port 5432 and causes `FATAL: role does not exist` errors when Spring Boot tries to connect). Using 5433 ensures a frictionless setup for everyone.
 
 > **Important:** the values for `PG_HOST_PORT`, `PG_USERNAME`, `PG_PASSWORD`, and `PG_DATABASE`
 > must match the `spring.datasource` settings in `src/main/resources/application.yaml`.
@@ -127,7 +129,7 @@ export DOCKER_COMPOSE_FILE=/absolute/path/to/docker/docker-compose.yml
    docker-compose down -v   # -v removes volumes so the DB is re-initialised
    docker-compose up --build
    ```
-3. Connect with DBeaver (or any SQL client) to `localhost:5432`, database `clarops_challenge`,
+3. Connect with DBeaver (or any SQL client) to `localhost:5433`, database `clarops_challenge`,
    and verify that `clarops_challenge_schema` contains your new tables.
 
 > You can add your tables to the existing `clarops_challenge_schema` schema or define a new one —
