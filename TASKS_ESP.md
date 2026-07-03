@@ -13,6 +13,6 @@
 - `[x]` 4. Pruebas Unitarias y E2E
   - `[x]` Unit Tests para validaciones (Idempotencia y Rechazos estrictos)
   - `[x]` Hurl Tests (Saga completa: Started, Waiting, Expired, Completed)
-- `[ ]` 5. Refinamiento de Documentación Final
-  - `[ ]` Construir `TASKS.md` y `AI_USAGE.md` para el repositorio.
-  - `[ ]` Actualizar `README.md` (y archivos adicionales) utilizando las notas exactas, el tono y las palabras del líder técnico para denotar seniority (Ej. Magia de Integración Local, Watchdog vs Datadog, Idempotencia 200 OK, etc).
+- `[x]` 5. Refinamiento de Documentación Final
+  - `[x]` Construir `TASKS.md` y `AI_USAGE.md` para el repositorio.
+  - `[x]` Actualizar `README.md` (y archivos adicionales) utilizando las notas exactas, el tono y las palabras del líder técnico para denotar seniority (Ej. Magia de Integración Local, Watchdog vs Datadog, Idempotencia 200 OK, etc).
