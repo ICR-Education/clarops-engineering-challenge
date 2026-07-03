@@ -59,7 +59,7 @@ class TraceStateRepositoryTest {
                 .eventsReceived(0)
                 .build();
 
-        TraceStateEntity saved = traceStateRepository.saveAndFlush(initialEntity);
+        traceStateRepository.saveAndFlush(initialEntity);
 
         // Act - Thread 1 fetches
         TraceStateEntity thread1Copy = traceStateRepository.findById(traceId).orElseThrow();
@@ -77,8 +77,6 @@ class TraceStateRepositoryTest {
         thread2Copy.setStatus("COMPLETED");
 
         // Assert
-        assertThrows(ObjectOptimisticLockingFailureException.class, () -> {
-            traceStateRepository.saveAndFlush(thread2Copy);
-        });
+        assertThrows(ObjectOptimisticLockingFailureException.class, () -> traceStateRepository.saveAndFlush(thread2Copy));
     }
 }

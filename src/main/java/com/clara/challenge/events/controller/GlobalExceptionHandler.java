@@ -20,8 +20,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidEventTransitionException.class)
     public ResponseEntity<ErrorResponse> handleInvalidTransition(InvalidEventTransitionException ex) {
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
-                .body(new ErrorResponse(ex.getMessage(), "UNPROCESSABLE_ENTITY", HttpStatus.UNPROCESSABLE_ENTITY.value()));
+        return ResponseEntity.status(422)
+                .body(new ErrorResponse(ex.getMessage(), "UNPROCESSABLE_ENTITY", 422));
     }
 
     @ExceptionHandler(TraceNotFoundException.class)

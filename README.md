@@ -46,8 +46,14 @@ While this iteration uses a REST API for synchronous ingestion, the architecture
    ./mvnw clean test jacoco:report spotbugs:check
    ```
 4. **Run E2E Tests (Hurl):**
+   Requires `hurl` installed locally. On macOS:
    ```bash
+   brew install hurl
    hurl --test hurl/*.hurl
+   ```
+   *Alternative without installation (via Docker):*
+   ```bash
+   docker run --rm -v $(pwd)/hurl:/hurl --network host ghcr.io/orange-opensource/hurl:latest --test hurl/*.hurl
    ```
 
 ## 📜 Principles Applied
