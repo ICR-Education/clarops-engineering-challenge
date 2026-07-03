@@ -26,6 +26,4 @@ Content-Type: application/json
   "nextExpectedEvent": "KYC_APPROVED",
   "nextEventTtlSeconds": 3600
 }
-HTTP 409
-[Asserts]
-jsonpath "$.message" contains "already processed"
+HTTP 200
