@@ -45,15 +45,16 @@ While this iteration uses a REST API for synchronous ingestion, the architecture
    export JAVA_HOME=$(/usr/libexec/java_home -v 21)
    ./mvnw clean test jacoco:report spotbugs:check
    ```
-4. **Run E2E Tests (Hurl):**
-   Requires `hurl` installed locally. On macOS:
+4. **Run E2E Tests (Hurl - Dynamic UUIDs):**
+   Requires `hurl` installed locally (`brew install hurl`). 
+   We provide wrapper scripts that inject fresh dynamic UUIDs on every run, so you never have to wipe the database between test runs!
    ```bash
-   brew install hurl
-   hurl --test hurl/*.hurl
+   ./scripts/run-e2e-tests.sh
    ```
-   *Alternative without installation (via Docker):*
+5. **Run Load Test (1000 requests):**
+   Generates and executes a dynamic Hurl file with 500 full traces (1000 requests) to test database locking and concurrency.
    ```bash
-   docker run --rm -v $(pwd)/hurl:/hurl --network host ghcr.io/orange-opensource/hurl:latest --test hurl/*.hurl
+   ./scripts/generate-load-test.sh
    ```
 
 ## 📜 Principles Applied

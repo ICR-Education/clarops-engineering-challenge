@@ -1,7 +1,6 @@
 package com.clara.challenge.events.controller;
 
 import com.clara.challenge.events.dto.ErrorResponse;
-import com.clara.challenge.events.exception.DuplicateEventException;
 import com.clara.challenge.events.exception.InvalidEventTransitionException;
 import com.clara.challenge.events.exception.TraceNotFoundException;
 import org.junit.jupiter.api.Test;
@@ -14,12 +13,6 @@ class GlobalExceptionHandlerTest {
 
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
 
-    @Test
-    void handleDuplicateEvent() {
-        ResponseEntity<ErrorResponse> response = handler.handleDuplicateEvent(new DuplicateEventException("msg"));
-        assertEquals(409, response.getStatusCode().value());
-        assertEquals(409, Objects.requireNonNull(response.getBody()).status());
-    }
 
     @Test
     void handleInvalidTransition() {

@@ -2,7 +2,6 @@ package com.clara.challenge.events.service;
 
 import com.clara.challenge.events.dto.EventRequest;
 import com.clara.challenge.events.dto.TraceStatusResponse;
-import com.clara.challenge.events.exception.DuplicateEventException;
 import com.clara.challenge.events.exception.InvalidEventTransitionException;
 import com.clara.challenge.events.model.TraceStateEntity;
 import com.clara.challenge.events.repository.TraceEventRepository;
@@ -35,7 +34,7 @@ class EventProcessorServiceTest {
     private EventProcessorService eventProcessorService;
 
     @Test
-    void shouldThrowDuplicateEventException_WhenEventIdAlreadyExists() {
+    void shouldReturnSilently_WhenEventIdAlreadyExists() {
         // Arrange
         EventRequest request = new EventRequest(
                 "evt-001", UUID.randomUUID(), "APP_STARTED", "OK",
@@ -43,8 +42,10 @@ class EventProcessorServiceTest {
         );
         when(traceEventRepository.existsByEventId("evt-001")).thenReturn(true);
 
-        // Act & Assert
-        assertThrows(DuplicateEventException.class, () -> eventProcessorService.processEvent(request));
+        // Act - Should not throw any exception
+        eventProcessorService.processEvent(request);
+
+        // Assert
         verify(traceStateRepository, never()).saveAndFlush(any());
     }
 

@@ -2,7 +2,6 @@ package com.clara.challenge.events.service;
 
 import com.clara.challenge.events.dto.EventRequest;
 import com.clara.challenge.events.dto.TraceStatusResponse;
-import com.clara.challenge.events.exception.DuplicateEventException;
 import com.clara.challenge.events.exception.InvalidEventTransitionException;
 import com.clara.challenge.events.exception.TraceNotFoundException;
 import com.clara.challenge.events.model.TraceEventEntity;
@@ -26,7 +25,8 @@ public class EventProcessorService {
     public void processEvent(EventRequest request) {
         // 1. Idempotency Check
         if (traceEventRepository.existsByEventId(request.eventId())) {
-            throw new DuplicateEventException("Event " + request.eventId() + " already processed");
+            // Already processed. Return gracefully (Idempotency -> 200 OK)
+            return;
         }
 
         // 2. Fetch State or Create New
@@ -35,9 +35,11 @@ public class EventProcessorService {
 
         if (state == null) {
             // New trace
+            String initialStatus = Boolean.TRUE.equals(request.isFinal()) ? "COMPLETED" : 
+                                   (request.nextExpectedEvent() != null ? "WAITING_OTHER_EVENT" : "STARTED");
             state = TraceStateEntity.builder()
                     .traceId(request.traceId())
-                    .status(Boolean.TRUE.equals(request.isFinal()) ? "COMPLETED" : "STARTED")
+                    .status(initialStatus)
                     .createdAt(now)
                     .updatedAt(now)
                     .eventsReceived(0)

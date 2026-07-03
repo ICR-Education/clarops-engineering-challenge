@@ -1,11 +1,11 @@
 # 1. Start Trace
-POST http://localhost:8080/events
+POST http://localhost:8080/api/events
 Content-Type: application/json
 {
-  "eventId": "evt-start-001",
-  "traceId": "11111111-1111-1111-1111-111111111111",
+  "eventId": "{{event_start_id}}",
+  "traceId": "{{trace_id}}",
   "eventName": "ACCOUNT_CREATED",
-  "occurredAt": "2026-07-03T10:00:00",
+  "occurredAt": "{{date_now}}",
   "result": "OK",
   "isFinal": false,
   "nextExpectedEvent": "KYC_APPROVED",
@@ -14,7 +14,7 @@ Content-Type: application/json
 HTTP 200
 
 # 2. Check Status (WAITING)
-GET http://localhost:8080/traces/11111111-1111-1111-1111-111111111111/status
+GET http://localhost:8080/api/traces/{{trace_id}}/status
 HTTP 200
 [Asserts]
 jsonpath "$.status" == "WAITING_OTHER_EVENT"
@@ -22,20 +22,20 @@ jsonpath "$.lastEventName" == "ACCOUNT_CREATED"
 jsonpath "$.nextExpectedEvent" == "KYC_APPROVED"
 
 # 3. Complete Trace
-POST http://localhost:8080/events
+POST http://localhost:8080/api/events
 Content-Type: application/json
 {
-  "eventId": "evt-end-001",
-  "traceId": "11111111-1111-1111-1111-111111111111",
+  "eventId": "{{event_end_id}}",
+  "traceId": "{{trace_id}}",
   "eventName": "KYC_APPROVED",
-  "occurredAt": "2026-07-03T10:05:00",
+  "occurredAt": "{{date_now}}",
   "result": "OK",
   "isFinal": true
 }
 HTTP 200
 
 # 4. Check Status (COMPLETED)
-GET http://localhost:8080/traces/11111111-1111-1111-1111-111111111111/status
+GET http://localhost:8080/api/traces/{{trace_id}}/status
 HTTP 200
 [Asserts]
 jsonpath "$.status" == "COMPLETED"

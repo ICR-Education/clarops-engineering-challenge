@@ -1,11 +1,11 @@
 # 1. Start Trace
-POST http://localhost:8080/events
+POST http://localhost:8080/api/events
 Content-Type: application/json
 {
-  "eventId": "evt-start-002",
-  "traceId": "22222222-2222-2222-2222-222222222222",
+  "eventId": "{{event_start_id}}",
+  "traceId": "{{trace_id}}",
   "eventName": "ACCOUNT_CREATED",
-  "occurredAt": "2026-07-03T10:00:00",
+  "occurredAt": "{{date_now}}",
   "result": "OK",
   "isFinal": false,
   "nextExpectedEvent": "KYC_APPROVED",
@@ -14,13 +14,13 @@ Content-Type: application/json
 HTTP 200
 
 # 2. Send wrong event (CARD_ISSUED instead of KYC_APPROVED)
-POST http://localhost:8080/events
+POST http://localhost:8080/api/events
 Content-Type: application/json
 {
-  "eventId": "evt-wrong-002",
-  "traceId": "22222222-2222-2222-2222-222222222222",
+  "eventId": "{{event_invalid_id}}",
+  "traceId": "{{trace_id}}",
   "eventName": "CARD_ISSUED",
-  "occurredAt": "2026-07-03T10:05:00",
+  "occurredAt": "{{date_now}}",
   "result": "OK",
   "isFinal": true
 }
