@@ -17,8 +17,13 @@ Excellent architectural question.
 *   **Before:** You had to run `docker-compose up -d` in your terminal, pray the ports weren't busy, and then start your Java app.
 *   **Now:** Spring Boot acts as an orchestrator. When starting the application context, it looks for a `docker-compose.yml`, communicates with the Docker daemon, spins up the containers (PostgreSQL, Kafka, Redis, etc.), dynamically reads the assigned ports and auto-configures the `application.properties` in memory. When shutting down the app, it shuts down the containers. It's pure local integration magic that saves us time.
 
-### Technical Debt Agreed Upon (Java 21 vs Lombok/MapStruct)
-The project includes Lombok. However, in Java 21, the creation of data classes (DTOs) is done natively and immutably using **Records**. This substitutes almost 100% of Lombok's utility in this regard. It is documented as **Technical Debt** that ideally Lombok should be removed in favor of Java 21 Records. MapStruct, although widely used, is also starting to be dispensable thanks to Java's native Pattern Matching.
+### Modeling Strategy (Java 21 Records vs Lombok)
+The project includes Lombok. For this development, we have taken the following mixed architectural decision:
+*   **JPA Entities (Data Layer):** We will continue using **Lombok** (`@Getter`, `@Setter`, etc.) since the JPA standard requires mutable classes and empty constructors, and Lombok remains excellent for reducing that verbosity.
+*   **DTOs (Web/Service Layer):** We will strictly use native Java 21 **Records**. Being immutable by nature, they are the perfect and modern structure for objects entering and leaving the API, replacing the need for Lombok in this layer.
+
+### Absence of Provided Business Scenarios (Testing)
+After a deep review, it was determined that the original repository lacks a predefined test set, mocks, or Postman collections (Happy path, Sad path, invalid data). We document this as an **Architectural Risk**, as it forces us as engineers to deduce and inject business simulations to test the code, violating the premise that *"Engineering does not own the business"*. Nevertheless, we will inject comprehensive valid simulations to guarantee the MVP's quality.
 
 ### Developer Experience & Environment Setup (DX)
 *   **Avoiding Port Conflicts (5433):** The use of port **5433** (`PG_HOST_PORT=5433`) has been statically defined in the `.env` and `application.yaml`. This is not arbitrary; it's a crucial DX decision to prevent the application from colliding with native PostgreSQL installations on MacOS (like pgAdmin, Homebrew, or Postgres.app) that usually hijack port 5432 and cause errors like `FATAL: role does not exist`. Any developer who clones the repository will have the environment working the first time, without needing to kill their personal databases.

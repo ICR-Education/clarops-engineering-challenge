@@ -58,7 +58,23 @@ Hurl tests for the expected use cases (Started, Waiting, Completed, TTL Expired,
 
 ---
 
-## 3. Verification Plan (VDD)
+## 3. Iterative Delivery Plan
+
+To maintain quality and isolate risk, this plan will be executed in 3 strict iterations (commits). Each iteration must be functional and contain its own tests before moving to the next:
+
+*   **📦 Iteration 1: Data Foundations (JPA & Entities)**
+    *   *Functionality:* Creation of the `TraceStateEntity` and `TraceEventEntity` entities along with their Spring Data Repositories.
+    *   *Testing:* `@DataJpaTest` to validate persistence, database constraints, and Optimistic Locking (`@Version`).
+*   **🧠 Iteration 2: Watchdog Brain (Service Layer)**
+    *   *Functionality:* DTOs (Records) and `EventProcessorService`. Programming business logic, state machine, and expiration calculation (Lazy TTL).
+    *   *Testing:* Pure Unit Tests using *Mockito* to simulate idempotency, transitions, 422 errors, and edge cases without booting the DB.
+*   **🌐 Iteration 3: Web API (Controller & E2E)**
+    *   *Functionality:* `EventController` exposing `POST /events` and `GET /traces/{traceId}/status`.
+    *   *Testing:* `@WebMvcTest` (or analogous) simulating the HTTP client sending payloads and guaranteeing JSON serialization and correct HTTP Status Codes.
+
+---
+
+## 4. Verification Plan (VDD)
 
 ### Acceptance Criteria
 1. **Started:** First event (no "next expected event") -> GET `/traces/.../status` returns `STARTED`.

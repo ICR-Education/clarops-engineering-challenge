@@ -17,8 +17,13 @@ Excelente pregunta arquitectónica.
 *   **Antes:** Tenías que correr `docker-compose up -d` en tu terminal, rezar para que los puertos no estuvieran ocupados, y luego arrancar tu app Java.
 *   **Ahora:** Spring Boot actúa como orquestador. Al iniciar el contexto de la aplicación, busca un `docker-compose.yml`, se comunica con el daemon de Docker, levanta los contenedores (PostgreSQL, Kafka, Redis, etc.), lee dinámicamente los puertos asignados y autoconfigura los `application.properties` en memoria. Al apagar la app, apaga los contenedores. Es pura magia de integración local que nos ahorra tiempo.
 
-### Deuda Técnica Acordada (Java 21 vs Lombok/MapStruct)
-El proyecto incluye Lombok. Sin embargo, en Java 21, la creación de clases de datos (DTOs) se hace de forma nativa e inmutable usando **Records**. Esto sustituye casi el 100% de la utilidad de Lombok en este sentido. Queda documentado como **Deuda Técnica** que idealmente se debería retirar Lombok en favor de los Records de Java 21. MapStruct, aunque muy usado, también empieza a ser prescindible gracias al Pattern Matching nativo de Java.
+### Estrategia de Modelado (Records Java 21 vs Lombok)
+El proyecto incluye Lombok. Para este desarrollo hemos tomado la siguiente decisión arquitectónica mixta:
+*   **JPA Entities (Capa de Datos):** Seguiremos usando **Lombok** (`@Getter`, `@Setter`, etc.) ya que el estándar JPA exige clases mutables y constructores vacíos, y Lombok sigue siendo excelente para reducir esa verbosidad.
+*   **DTOs (Capa Web/Servicio):** Usaremos estrictamente **Records** nativos de Java 21. Al ser inmutables por naturaleza, son la estructura perfecta y moderna para los objetos que entran y salen de la API, sustituyendo la necesidad de Lombok en esta capa.
+
+### Ausencia de Escenarios de Negocio Provistos (Testing)
+Tras una revisión profunda, se determinó que el repositorio original carece de un set de pruebas predefinidas, mocks o colecciones de Postman (Happy path, Sad path, invalid data). Documentamos esto como un **Riesgo Arquitectónico**, ya que nos fuerza como ingenieros a deducir e inyectar simulaciones de negocio para probar el código, violando la premisa de que *"Ingeniería no es dueña del negocio"*. Aun así, inyectaremos simulaciones válidas exhaustivas para garantizar la calidad del MVP.
 
 ### Developer Experience & Environment Setup (DX)
 *   **Evitando Conflictos de Puertos (5433):** Se ha definido estáticamente en el `.env` y en `application.yaml` el uso del puerto **5433** (`PG_HOST_PORT=5433`). Esto no es arbitrario; es una decisión de DX crucial para evitar que la aplicación choque con instalaciones nativas de PostgreSQL en Mac (como pgAdmin, Homebrew o Postgres.app) que usualmente secuestran el puerto 5432 y causan errores como `FATAL: role does not exist`. Cualquier desarrollador que clone el repositorio tendrá el ambiente funcionando a la primera, sin necesidad de apagar sus bases de datos personales.
