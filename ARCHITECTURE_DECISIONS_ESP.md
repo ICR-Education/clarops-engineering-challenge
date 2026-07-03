@@ -7,7 +7,7 @@ Este documento centraliza la filosofía arquitectónica, los debates de diseño 
 ## 1. Conceptos Arquitectónicos y Beneficios del Stack
 
 ### ¿Por qué un "Watchdog" si ya tenemos APMs como Datadog?
-Excelente pregunta arquitectónica.
+
 *   **Datadog / New Relic (APM):** Son herramientas de Observabilidad de Infraestructura y Trazas Técnicas. Te dicen *"El microservicio B tardó 500ms y falló en la query SQL"*.
 *   **El Watchdog:** Es una herramienta de Observabilidad de Negocio (Coreografía). Datadog no sabe que el cliente "Juan" no ha recibido su tarjeta de crédito después de 3 días porque el proceso de KYC se trabó. El Watchdog sí. Un Watchdog mantiene estado de negocio, y cuando un SLA (TTL) se rompe, su trabajo no es solo "hacer una gráfica roja en un dashboard", sino tomar acciones de negocio programáticas, como inyectar un mensaje de "Compensación / Rollback" al bus, notificar a un CRM, o lanzar un webhook de alerta a soporte a clientes.
 
@@ -34,7 +34,7 @@ A diferencia de versiones 3.x, en Spring Boot 4.x la anotación de aislamiento d
 Tras una revisión profunda, se determinó que el repositorio original carece de un set de pruebas predefinidas, mocks o colecciones de Postman (Happy path, Sad path, invalid data). Documentamos esto como un **Riesgo Arquitectónico**, ya que nos fuerza como ingenieros a deducir e inyectar simulaciones de negocio para probar el código, violando la premisa de que *"Ingeniería no es dueña del negocio"*. Aun así, inyectaremos simulaciones válidas exhaustivas para garantizar la calidad del MVP.
 
 ### Developer Experience & Environment Setup (DX)
-*   **Evitando Conflictos de Puertos (5433):** Se ha definido estáticamente en el `.env` y en `application.yaml` el uso del puerto **5433** (`PG_HOST_PORT=5433`). Esto no es arbitrario; es una decisión de DX crucial para evitar que la aplicación choque con instalaciones nativas de PostgreSQL en Mac (como pgAdmin, Homebrew o Postgres.app) que usualmente secuestran el puerto 5432 y causan errores como `FATAL: role does not exist`. Cualquier desarrollador que clone el repositorio tendrá el ambiente funcionando a la primera, sin necesidad de apagar sus bases de datos personales.
+*   **Evitando Conflictos de Puertos (5433):** Se ha definido estáticamente en el `.env` y en `application.yaml` el uso del puerto **5433** (`PG_HOST_PORT=5433`). Esto no es arbitrario; es una decisión de DX crucial para evitar que la aplicación choque con instalaciones nativas de PostgreSQL (como pgAdmin, Homebrew o Postgres.app) que usualmente secuestran el puerto 5432 y causan errores como `FATAL: role does not exist`. Cualquier desarrollador que clone el repositorio tendrá el ambiente funcionando a la primera, sin necesidad de apagar sus bases de datos personales.
 
 ---
 
@@ -51,11 +51,12 @@ Se nos han planteado preguntas abiertas en el challenge original. Esta es la res
 > **Eventos Desordenados/Inesperados en el flujo (Strict State Machine):** 
 > En finanzas, si un proceso esperaba el evento `KYC_APPROVED` y en su lugar recibe `CARD_ISSUED` saltándose pasos, es un incidente crítico de inconsistencia.
 > *   **Mejor Práctica Aplicada:** Seremos estrictos (Strict Validation). Si el `eventName` entrante no hace match con el `nextExpectedEvent` que el Watchdog tenía guardado (y no es el primer evento del flujo), lo rechazamos con un **422 Unprocessable Entity** (o 409 Conflict), con un mensaje claro. En la vida real, el emisor que recibe este error mandaría ese evento a una Dead Letter Queue (DLQ) para análisis manual o reintento postergado.
+> *   **Perspectiva Arquitectónica con Brokers (Kafka/RabbitMQ):** Es 100% correcto que si usáramos Kafka y utilizáramos el `traceId` (Transaction ID) como la *Partition Key*, Kafka garantizaría matemáticamente el orden de entrega de los eventos dentro de esa misma partición. De igual forma, RabbitMQ garantiza FIFO en colas individuales. **¿Cómo mejora esto la validación?** Al tener garantía de orden en el transporte, sabemos sin lugar a duda que si un evento llega "desordenado", no fue un accidente de red ni una "carrera de peticiones" (*race condition*). Es un error puramente lógico del servicio emisor (que se saltó un paso). Esto nos permite rechazar el evento con total seguridad y mandarlo directo a un DLQ, sabiendo que hacer un *retry* no solucionaría nada porque el evento faltante no "viene en camino", sino que nunca se emitió.
 
 > [!WARNING]
 > **Late Events (Eventos que llegan después de la Expiración TTL):**
 > *   **Decisión actual (V1):** Por estrictez de la máquina de estados, el flujo expiró y no debe aceptar transiciones. Se rechazará el evento (`422 Unprocessable Entity`).
-> *   **Iteración Futura (Deuda Técnica / Business Improvement):** Comercialmente, a una Fintech no le conviene tirar una transacción a la basura si el cliente eventualmente completó el paso. En un próximo refactor, se analizará implementar un **Mecanismo de Retries / Recovery**, guardando un `retryCount` en BD y extendiendo la ventana de TTL de forma programática al borde, evitando que un retry global entorpezca todo el sistema.
+> *   **Decisión Arquitectónica vs de Negocio:** El rechazo de un evento tardío no es una falla técnica que requiera un "retry" automático por resiliencia. El tiempo es una dimensión estricta de negocio en el sector financiero. Si un evento llega después del TTL (ej. un pago de tarjeta de crédito recibido después de la fecha de corte), rechazarlo o procesarlo distinto es una regla de negocio. Por lo tanto, no se implementarán reintentos técnicos a ciegas; cualquier recuperación o extensión de tiempo debe ser decidida y diseñada explícitamente por el equipo de Producto/Negocio.
 
 > [!NOTE]
 > **Resolución al resto de Casos / Preguntas Abiertas:**
@@ -64,6 +65,14 @@ Se nos han planteado preguntas abiertas en el challenge original. Esta es la res
 > *   **Cálculo de TTL:** Sumaremos `nextEventTtlSeconds` basado en el `occurredAt` reportado por el emisor en el payload, para respetar su contexto temporal.
 > *   **Flujos Finalizados (`COMPLETED`)**: Rechazarán nuevos eventos con error.
 > *   **Consultas Huérfanas:** Un `GET` a un `traceId` que no existe devolverá `404 Not Found`.
+>
+> [!TIP]
+> **Evolución hacia Event-Driven Architecture:**
+> Varios de los escenarios complejos discutidos (mensajes en desorden, latencia, concurrencia extrema) representan un reto significativo para una API REST síncrona. Una mejora sustancial y recomendada para el futuro es migrar la recepción de estos flujos hacia un modelo basado en **Kafka**. Como se acordó, las capacidades nativas de Kafka (garantía de ordenamiento por partición usando el Transaction ID) descargarían drásticamente la responsabilidad de validación secuencial del lado de la aplicación y la base de datos, convirtiéndose en el paso natural para escalar este sistema a volúmenes masivos.
+>
+> **Trade-offs de esta decisión:**
+> 1. **Pérdida de la respuesta síncrona:** Al migrar a un flujo asíncrono (*Fire-and-Forget*), perderíamos la capacidad de devolver un error HTTP `422` inmediato al cliente cuando un evento es inválido. El manejo de errores dependería enteramente del monitoreo de un Dead Letter Topic (DLT).
+> 2. **Responsabilidad del Productor:** Kafka garantiza el orden de lo que *recibe*. Si el servicio emisor tiene un bug de concurrencia y publica los eventos en el broker en orden incorrecto, Kafka los entregará en ese orden incorrecto. La validación estricta en nuestro servicio (Watchdog) seguiría siendo un salvavidas indispensable.
 
 ---
 

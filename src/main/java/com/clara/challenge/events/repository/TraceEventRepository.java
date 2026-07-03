@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface TraceEventRepository extends JpaRepository<TraceEventEntity, Long> {
+    boolean existsByEventId(String eventId);
 }

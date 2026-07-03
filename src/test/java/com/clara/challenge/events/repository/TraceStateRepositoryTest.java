@@ -35,6 +35,7 @@ class TraceStateRepositoryTest {
                 .status("STARTED")
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
+                .eventsReceived(0)
                 .build();
 
         // Act
@@ -55,6 +56,7 @@ class TraceStateRepositoryTest {
                 .status("STARTED")
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
+                .eventsReceived(0)
                 .build();
 
         TraceStateEntity saved = traceStateRepository.saveAndFlush(initialEntity);
@@ -68,7 +70,7 @@ class TraceStateRepositoryTest {
         entityManager.detach(thread2Copy);
 
         // Thread 1 updates and saves successfully
-        thread1Copy.setStatus("WAITING");
+        thread1Copy.setStatus("WAITING_OTHER_EVENT");
         traceStateRepository.saveAndFlush(thread1Copy);
 
         // Thread 2 tries to update the stale data

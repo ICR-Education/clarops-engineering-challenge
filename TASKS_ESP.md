@@ -2,17 +2,17 @@
   - `[x]` Copiar `example.env` a `.env`
   - `[x]` Arrancar la aplicación y validar que Docker compose y la BD suben
   - `[x]` Hacer test al endpoint `/api/health`
-- `[/]` 2. Modelado y Base de Datos (DDL)
-  - `[ ]` Escribir `docker/init-scripts/db/02-schema.sql` (trace_state y trace_event)
-  - `[ ]` Reiniciar contenedores (`docker-compose down -v` y `up --build`) para forzar la creación.
-- `[ ]` 3. Implementación Core en Spring Boot
-  - `[ ]` Crear DTOs usando Records de Java 21 (Anotando la deuda técnica de Lombok)
-  - `[ ]` Crear Entidades JPA y Repositorios (con concurrencia vía `@Version`)
-  - `[ ]` Implementar Service "Watchdog" (Validaciones estrictas de Fintech, Lazy TTL)
-  - `[ ]` Implementar REST Controller
-- `[ ]` 4. Pruebas Unitarias y E2E
-  - `[ ]` Unit Tests para validaciones (Idempotencia y Rechazos estrictos)
-  - `[ ]` Hurl Tests (Saga completa: Started, Waiting, Expired, Completed)
+- `[x]` 2. Modelado y Base de Datos (DDL)
+  - `[x]` Escribir `docker/init-scripts/db/02-schema.sql` (trace_state y trace_event)
+  - `[x]` Reiniciar contenedores (`docker-compose down -v` y `up --build`) para forzar la creación.
+- `[x]` 3. Implementación Core en Spring Boot
+  - `[x]` Crear DTOs usando Records de Java 21 (Anotando la deuda técnica de Lombok)
+  - `[x]` Crear Entidades JPA y Repositorios (con concurrencia vía `@Version`)
+  - `[x]` Implementar Service "Watchdog" (Validaciones estrictas de Fintech, Lazy TTL)
+  - `[x]` Implementar REST Controller
+- `[x]` 4. Pruebas Unitarias y E2E
+  - `[x]` Unit Tests para validaciones (Idempotencia y Rechazos estrictos)
+  - `[x]` Hurl Tests (Saga completa: Started, Waiting, Expired, Completed)
 - `[ ]` 5. Refinamiento de Documentación Final
   - `[ ]` Construir `TASKS.md` y `AI_USAGE.md` para el repositorio.
   - `[ ]` Actualizar `README.md` (y archivos adicionales) utilizando las notas exactas, el tono y las palabras del líder técnico para denotar seniority (Ej. Magia de Integración Local, Watchdog vs Datadog, Idempotencia 200 OK, etc).

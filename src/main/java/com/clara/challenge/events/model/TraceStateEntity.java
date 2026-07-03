@@ -36,6 +36,18 @@ public class TraceStateEntity {
     @Column(name = "next_expected_event", length = 100)
     private String nextExpectedEvent;
 
+    @Column(name = "next_expected_before")
+    private LocalDateTime nextExpectedBefore;
+
+    @Column(name = "last_event_name", length = 100)
+    private String lastEventName;
+
+    @Column(name = "last_event_result", length = 50)
+    private String lastEventResult;
+
+    @Column(name = "events_received")
+    private Integer eventsReceived;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

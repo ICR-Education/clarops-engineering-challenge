@@ -30,6 +30,9 @@ public class TraceEventEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "event_id", nullable = false, unique = true, length = 100)
+    private String eventId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trace_id", nullable = false)
     private TraceStateEntity traceState;
