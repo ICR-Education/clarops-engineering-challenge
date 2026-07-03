@@ -1,0 +1,48 @@
+package com.clara.challenge.events.model;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@Entity
+@Table(name = "trace_state")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class TraceStateEntity {
+
+    @Id
+    @Column(name = "trace_id")
+    private UUID traceId;
+
+    @Column(name = "status", nullable = false, length = 50)
+    private String status;
+
+    @Column(name = "ttl_seconds")
+    private Integer ttlSeconds;
+
+    @Column(name = "next_expected_event", length = 100)
+    private String nextExpectedEvent;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Integer version;
+}

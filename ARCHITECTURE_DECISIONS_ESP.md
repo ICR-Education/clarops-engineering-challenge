@@ -22,6 +22,14 @@ El proyecto incluye Lombok. Para este desarrollo hemos tomado la siguiente decis
 *   **JPA Entities (Capa de Datos):** Seguiremos usando **Lombok** (`@Getter`, `@Setter`, etc.) ya que el estándar JPA exige clases mutables y constructores vacíos, y Lombok sigue siendo excelente para reducir esa verbosidad.
 *   **DTOs (Capa Web/Servicio):** Usaremos estrictamente **Records** nativos de Java 21. Al ser inmutables por naturaleza, son la estructura perfecta y moderna para los objetos que entran y salen de la API, sustituyendo la necesidad de Lombok en esta capa.
 
+### Migración a Spring Boot 4.x (Testing)
+A diferencia de versiones 3.x, en Spring Boot 4.x la anotación de aislamiento de persistencia `@DataJpaTest` eliminó el subpaquete `.orm.` de su estructura interna. Ha sido documentado en nuestro análisis técnico que el nuevo paquete de importación correcto es `org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest`. Esta dependencia sigue provista por defecto en `spring-boot-starter-test`.
+
+### Configuración de Esquemas (Base de Datos)
+- **Decisión:** Mantener una arquitectura simple de tipo "1 base de datos, 1 esquema por defecto".
+- **Alternativas:** Anotar cada entidad con `@Table(schema="...")`.
+- **Justificación:** Es mucho más limpio configurar `spring.jpa.properties.hibernate.default_schema` a nivel global en el `application.yaml`. Si en el futuro integramos tablas de otros esquemas de negocio, se sobreescribirá el comportamiento por defecto explícitamente en la clase de entidad que lo requiera. Esto nos da lo mejor de ambos mundos: 90% de clases limpias, 10% de flexibilidad para excepciones.
+
 ### Ausencia de Escenarios de Negocio Provistos (Testing)
 Tras una revisión profunda, se determinó que el repositorio original carece de un set de pruebas predefinidas, mocks o colecciones de Postman (Happy path, Sad path, invalid data). Documentamos esto como un **Riesgo Arquitectónico**, ya que nos fuerza como ingenieros a deducir e inyectar simulaciones de negocio para probar el código, violando la premisa de que *"Ingeniería no es dueña del negocio"*. Aun así, inyectaremos simulaciones válidas exhaustivas para garantizar la calidad del MVP.
 
@@ -56,3 +64,12 @@ Se nos han planteado preguntas abiertas en el challenge original. Esta es la res
 > *   **Cálculo de TTL:** Sumaremos `nextEventTtlSeconds` basado en el `occurredAt` reportado por el emisor en el payload, para respetar su contexto temporal.
 > *   **Flujos Finalizados (`COMPLETED`)**: Rechazarán nuevos eventos con error.
 > *   **Consultas Huérfanas:** Un `GET` a un `traceId` que no existe devolverá `404 Not Found`.
+
+---
+
+## 3. Pruebas y Validación (VDD - Capa de Datos)
+
+Se han implementado pruebas de integración reales (`@SpringBootTest`) con bases de datos generadas al vuelo (`spring-boot-docker-compose`).
+
+*   **Test 1 (Happy Path - Escritura y Lectura):** Verifica que al guardar un `TraceStateEntity`, PostgreSQL procese correctamente el UUID, auto-genere los timestamps, asigne la versión `0` por defecto y recupere exitosamente la fila del esquema `clarops_challenge_schema`.
+*   **Test 2 (Sad Path - Optimistic Locking):** Verifica la concurrencia a nivel de base de datos. Se simula a "Hilo 1" y "Hilo 2" leyendo exactamente el mismo estado del Trace. Cuando "Hilo 1" guarda su actualización, la BD incrementa la versión. Cuando "Hilo 2" intenta guardar su estado sobre la misma data, JPA intercepta que la versión que Hilo 2 tiene está obsoleta e impide una sobreescritura sucia, lanzando una `ObjectOptimisticLockingFailureException`. Este cerrojo es vital para sistemas transaccionales distribuidos.

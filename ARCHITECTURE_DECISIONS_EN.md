@@ -13,6 +13,11 @@ Excellent architectural question.
 
 *(Note: For this challenge, for simplicity, the Message Bus -Kafka- was removed from the equation. Instead of consuming events from a Topic, the event is sent to us via the HTTP endpoint `POST /events`)*.
 
+### Schema Configuration Decision
+- **Decision:** Maintain a simple "1 database, 1 default schema" architecture.
+- **Alternatives:** Annotating each entity with `@Table(schema="...")`.
+- **Rationale:** It's cleaner to configure `spring.jpa.properties.hibernate.default_schema` globally in `application.yaml`. If in the future we integrate tables from other business schemas, we will explicitly override the default behavior in the required entity class. This gives us the best of both worlds: 90% clean classes, 10% flexibility for exceptions.
+
 ### Local Integration: The Magic of `spring-boot-docker-compose`
 *   **Before:** You had to run `docker-compose up -d` in your terminal, pray the ports weren't busy, and then start your Java app.
 *   **Now:** Spring Boot acts as an orchestrator. When starting the application context, it looks for a `docker-compose.yml`, communicates with the Docker daemon, spins up the containers (PostgreSQL, Kafka, Redis, etc.), dynamically reads the assigned ports and auto-configures the `application.properties` in memory. When shutting down the app, it shuts down the containers. It's pure local integration magic that saves us time.
@@ -21,6 +26,9 @@ Excellent architectural question.
 The project includes Lombok. For this development, we have taken the following mixed architectural decision:
 *   **JPA Entities (Data Layer):** We will continue using **Lombok** (`@Getter`, `@Setter`, etc.) since the JPA standard requires mutable classes and empty constructors, and Lombok remains excellent for reducing that verbosity.
 *   **DTOs (Web/Service Layer):** We will strictly use native Java 21 **Records**. Being immutable by nature, they are the perfect and modern structure for objects entering and leaving the API, replacing the need for Lombok in this layer.
+
+### Migration to Spring Boot 4.x (Testing)
+Unlike 3.x versions, in Spring Boot 4.x the persistence isolation annotation `@DataJpaTest` removed the `.orm.` subpackage from its internal structure. It has been documented in our technical analysis that the new correct import package is `org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest`. This dependency continues to be provided by default in `spring-boot-starter-test`.
 
 ### Absence of Provided Business Scenarios (Testing)
 After a deep review, it was determined that the original repository lacks a predefined test set, mocks, or Postman collections (Happy path, Sad path, invalid data). We document this as an **Architectural Risk**, as it forces us as engineers to deduce and inject business simulations to test the code, violating the premise that *"Engineering does not own the business"*. Nevertheless, we will inject comprehensive valid simulations to guarantee the MVP's quality.
@@ -56,3 +64,12 @@ Open questions were raised in the original challenge. This is the architectural 
 > *   **TTL Calculation:** We will add `nextEventTtlSeconds` based on the `occurredAt` reported by the emitter in the payload, to respect its temporal context.
 > *   **Completed Flows (`COMPLETED`)**: Will reject new events with an error.
 > *   **Orphan Queries:** A `GET` to an unknown `traceId` will return `404 Not Found`.
+
+---
+
+## 3. Testing and Validation (VDD - Data Layer)
+
+Real integration tests (`@SpringBootTest`) have been implemented against live databases (`spring-boot-docker-compose`).
+
+*   **Test 1 (Happy Path - Read and Write):** Verifies that when saving a `TraceStateEntity`, PostgreSQL correctly processes the UUID, auto-generates timestamps, assigns the default version `0`, and successfully retrieves the row from the `clarops_challenge_schema` schema.
+*   **Test 2 (Sad Path - Optimistic Locking):** Verifies concurrency at the database level. It simulates "Thread 1" and "Thread 2" reading the exact same Trace state. When "Thread 1" saves its update, the DB increments the version. When "Thread 2" tries to save its state over the same data, JPA intercepts that Thread 2's version is stale and prevents a dirty overwrite, throwing an `ObjectOptimisticLockingFailureException`. This lock is vital for distributed transactional systems.

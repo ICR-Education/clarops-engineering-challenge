@@ -25,6 +25,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        default_schema: clarops_challenge_schema
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
