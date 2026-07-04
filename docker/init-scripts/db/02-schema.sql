@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS trace_event (
     event_id VARCHAR(100) UNIQUE NOT NULL,
     trace_id UUID NOT NULL,
     type VARCHAR(100) NOT NULL,
-    result VARCHAR(50) NOT NULL CHECK (result IN ('OK', 'ERROR')),
+    result VARCHAR(50) NOT NULL CHECK (result IN ('SUCCESS', 'ERROR')),
     created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
     
     CONSTRAINT fk_trace_event_trace_id FOREIGN KEY (trace_id)

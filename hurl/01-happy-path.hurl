@@ -6,8 +6,8 @@ Content-Type: application/json
   "traceId": "{{trace_id}}",
   "eventName": "ACCOUNT_CREATED",
   "occurredAt": "{{date_now}}",
-  "result": "OK",
-  "isFinal": false,
+  "result": "SUCCESS",
+  "finalEvent": false,
   "nextExpectedEvent": "KYC_APPROVED",
   "nextEventTtlSeconds": 3600
 }
@@ -29,8 +29,8 @@ Content-Type: application/json
   "traceId": "{{trace_id}}",
   "eventName": "KYC_APPROVED",
   "occurredAt": "{{date_now}}",
-  "result": "OK",
-  "isFinal": true
+  "result": "SUCCESS",
+  "finalEvent": true
 }
 HTTP 200
 

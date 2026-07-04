@@ -16,7 +16,7 @@ public record EventRequest(
         LocalDateTime occurredAt,
         String nextExpectedEvent,
         Integer nextEventTtlSeconds,
-        Boolean isFinal,
+        Boolean finalEvent,
         Map<String, Object> metadata
 ) {
 }

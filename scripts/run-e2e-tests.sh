@@ -42,6 +42,14 @@ hurl --variable trace_id=$UUID_T4 \
      --variable event_end_id=evt-end-$UUID_T4 \
      --test hurl/04-ttl-expired.hurl
 
+# 5. STARTED Flow
+UUID_T5=$(uuidgen)
+echo "Running 05-started-flow.hurl with Trace ID: $UUID_T5"
+hurl --variable trace_id=$UUID_T5 \
+     --variable event_start_id=evt-start-$UUID_T5 \
+     --variable date_now=$DATE_NOW \
+     --test hurl/05-started-flow.hurl
+
 echo "====================================="
 echo "✅ All dynamic E2E tests passed!"
 echo "====================================="

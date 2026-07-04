@@ -37,7 +37,7 @@ public class EventProcessorService {
 
         if (state == null) {
             // New trace
-            String initialStatus = Boolean.TRUE.equals(request.isFinal()) ? "COMPLETED" : 
+            String initialStatus = Boolean.TRUE.equals(request.finalEvent()) ? "COMPLETED" :
                                    (request.nextExpectedEvent() != null ? "WAITING_OTHER_EVENT" : "STARTED");
             state = TraceStateEntity.builder()
                     .traceId(request.traceId())
@@ -60,7 +60,7 @@ public class EventProcessorService {
             }
             
             // Determine next status
-            if (Boolean.TRUE.equals(request.isFinal())) {
+            if (Boolean.TRUE.equals(request.finalEvent())) {
                 state.setStatus("COMPLETED");
                 log.info("Trace {} transitioned to COMPLETED", request.traceId());
             } else if (request.nextExpectedEvent() != null) {
@@ -114,8 +114,10 @@ public class EventProcessorService {
                 state.getTraceId(),
                 currentStatus,
                 state.getLastEventName(),
+                state.getLastEventResult(),
                 state.getNextExpectedEvent(),
-                state.getUpdatedAt()
-        );
+                state.getNextExpectedBefore(),
+                state.getEventsReceived(),
+                state.getUpdatedAt());
     }
 }
