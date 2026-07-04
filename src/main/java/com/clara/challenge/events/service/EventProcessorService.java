@@ -94,6 +94,7 @@ public class EventProcessorService {
                 .type(request.eventName())
                 .result(request.result())
                 .createdAt(now)
+                .metadata(request.metadata())
                 .build();
         traceEventRepository.saveAndFlush(event);
     }

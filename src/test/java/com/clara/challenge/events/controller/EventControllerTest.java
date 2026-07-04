@@ -31,8 +31,8 @@ class EventControllerTest {
     @Test
     void processEvent_success() {
         EventRequest request = new EventRequest(
-                "evt-1", UUID.randomUUID(), "ACCOUNT_CREATED", null,
-                LocalDateTime.now(), "OK", null, false, null
+                "evt-1", UUID.randomUUID(), "ACCOUNT_CREATED", "SUCCESS",
+                LocalDateTime.now(), null, null, false, null
         );
 
         doNothing().when(eventProcessorService).processEvent(any());
@@ -47,7 +47,7 @@ class EventControllerTest {
         UUID traceId = UUID.randomUUID();
         TraceStatusResponse expectedResponse = new TraceStatusResponse(
                 traceId, "WAITING_OTHER_EVENT", "ACCOUNT_CREATED",
-                "KYC_APPROVED", LocalDateTime.now()
+                "SUCCESS", "KYC_APPROVED", null, 1, LocalDateTime.now()
         );
 
         when(eventProcessorService.getTraceStatus(traceId)).thenReturn(expectedResponse);

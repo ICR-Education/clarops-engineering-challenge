@@ -4,6 +4,7 @@ import com.clara.challenge.events.dto.EventRequest;
 import com.clara.challenge.events.dto.TraceStatusResponse;
 import com.clara.challenge.events.service.EventProcessorService;
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,7 +17,7 @@ public class EventController {
     private final EventProcessorService eventProcessorService;
 
     @PostMapping("/events")
-    public ResponseEntity<Void> processEvent(@RequestBody EventRequest request) {
+    public ResponseEntity<Void> processEvent(@Valid @RequestBody EventRequest request) {
         eventProcessorService.processEvent(request);
         return ResponseEntity.ok().build(); // Standard 200 OK for successful event append
     }

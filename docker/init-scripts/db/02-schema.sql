@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS trace_event (
     type VARCHAR(100) NOT NULL,
     result VARCHAR(50) NOT NULL CHECK (result IN ('SUCCESS', 'ERROR')),
     created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-    
+    metadata TEXT,
+
     CONSTRAINT fk_trace_event_trace_id FOREIGN KEY (trace_id)
         REFERENCES trace_state (trace_id) ON DELETE CASCADE
 );
