@@ -60,4 +60,4 @@ target/
 ### AI Rules ###
 CLAUDE.md
 
-/hurl/05-load-test.hurl
+hurl/05-load-test.hurl
