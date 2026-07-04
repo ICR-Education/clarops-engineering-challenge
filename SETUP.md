@@ -60,23 +60,30 @@ Spring Boot will automatically bring up the Docker stack located at `docker/dock
 
 ---
 
-## Validating the Setup
+## Validating the Setup (Tests & Quality Gates)
 
-The database initialisation script (`docker/init-scripts/db/01-init-schema.sql`) creates the
-`clarops_challenge_schema` schema and a `health` table seeded with the value
-`clarops sr engineer challenge`.
+Once the application is running, you can fully validate the architecture using our automated test suite and quality gates:
 
-Once the application is running, call the health endpoint to confirm everything is working:
-
+**1. Run Quality Gates (Unit Tests, Coverage, Static Analysis):**
 ```bash
-curl http://localhost:8080/api/health
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+./mvnw clean test jacoco:report spotbugs:check
 ```
 
-Expected response:
+**2. Run E2E Tests (Hurl - Dynamic UUIDs):**
+Requires `hurl` installed locally (`brew install hurl`).
+Our custom bash script injects fresh UUIDs and timestamps dynamically so you never have to wipe the database between runs.
+```bash
+./scripts/run-e2e-tests.sh
+```
 
+**3. Run Load Test (1000 requests):**
+Generates and executes a 500-trace (1000 requests) Hurl file to validate database Optimistic Locking (`@Version`) under high concurrency.
+```bash
+./scripts/generate-load-test.sh
 ```
-clarops sr engineer challenge
-```
+
+*(If you just want a quick manual check, run: `curl http://localhost:8080/api/health`)*
 
 ---
 
