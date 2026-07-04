@@ -25,8 +25,8 @@ Content-Type: application/json
   "traceId": "$UUID",
   "eventName": "ACCOUNT_CREATED",
   "occurredAt": "$DATE_NOW",
-  "result": "OK",
-  "isFinal": false,
+  "result": "SUCCESS",
+  "finalEvent": false,
   "nextExpectedEvent": "KYC_APPROVED",
   "nextEventTtlSeconds": 3600
 }
@@ -40,8 +40,8 @@ Content-Type: application/json
   "traceId": "$UUID",
   "eventName": "KYC_APPROVED",
   "occurredAt": "$DATE_NOW",
-  "result": "OK",
-  "isFinal": true
+  "result": "SUCCESS",
+  "finalEvent": true
 }
 HTTP 200
 
