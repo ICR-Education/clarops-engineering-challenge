@@ -74,6 +74,15 @@ Se nos han planteado preguntas abiertas en el challenge original. Esta es la res
 > 1. **Pérdida de la respuesta síncrona:** Al migrar a un flujo asíncrono (*Fire-and-Forget*), perderíamos la capacidad de devolver un error HTTP `422` inmediato al cliente cuando un evento es inválido. El manejo de errores dependería enteramente del monitoreo de un Dead Letter Topic (DLT).
 > 2. **Responsabilidad del Productor:** Kafka garantiza el orden de lo que *recibe*. Si el servicio emisor tiene un bug de concurrencia y publica los eventos en el broker en orden incorrecto, Kafka los entregará en ese orden incorrecto. La validación estricta en nuestro servicio (Watchdog) seguiría siendo un salvavidas indispensable.
 
+> [!IMPORTANT]
+> **Escrituras Atómicas: `@Transactional` en `processEvent()`**
+>
+> Cada ingesta de evento realiza **dos escrituras secuenciales en BD**: primero a `trace_state` (estado mutable actual) y luego a `trace_event` (ledger inmutable). Sin un límite transaccional, un fallo entre las dos escrituras deja el sistema en un estado inconsistente: el estado del trace fue actualizado pero no existe ningún registro de evento que explique por qué. En una auditoría Fintech, esto es corrupción silenciosa de datos — el trace muestra una transición de estado que no puede trazarse a ningún evento en el ledger.
+>
+> `@Transactional` envuelve ambas escrituras en una única unidad ACID. Si el insert al ledger falla, toda la operación hace rollback de forma atómica, dejando el sistema en su estado consistente anterior. El caller recibe un 500, reintenta, y la operación completa tiene éxito en conjunto.
+>
+> `getTraceStatus()` usa `@Transactional(readOnly = true)`: el proveedor JPA omite el dirty-checking y puede aplicar un hint de conexión de solo lectura. Esto es seguro porque `TTL_EXPIRED_FOR_EVENT` se computa en memoria en tiempo de consulta y nunca se persiste de vuelta en la base de datos.
+
 ---
 
 ## 3. Pruebas y Validación (VDD - Capa de Datos)

@@ -74,6 +74,15 @@ Open questions were raised in the original challenge. This is the architectural 
 > 1. **Loss of synchronous response:** By migrating to an asynchronous flow (*Fire-and-Forget*), we would lose the ability to return an immediate HTTP `422` error to the client when an event is invalid. Error handling would rely entirely on monitoring a Dead Letter Topic (DLT).
 > 2. **Producer Responsibility:** Kafka guarantees the order of what it *receives*. If the emitting service has a concurrency bug and publishes the events to the broker in the wrong order, Kafka will deliver them in the wrong order. The strict validation in our service (Watchdog) would remain an indispensable safety net.
 
+> [!IMPORTANT]
+> **Atomic Writes: `@Transactional` on `processEvent()`**
+>
+> Every event ingestion performs **two sequential DB writes**: first to `trace_state` (mutable current status) and then to `trace_event` (immutable ledger). Without a transaction boundary, a failure between the two writes leaves the trace in an inconsistent state: the status is updated but no event record exists to explain why. In a Fintech audit, this is silent data corruption — the trace shows a state transition that cannot be traced back to any event in the ledger.
+>
+> `@Transactional` wraps both writes in a single ACID unit. If the ledger insert fails, the entire operation rolls back atomically, leaving the system in its previous consistent state. The upstream caller receives a 500, retries, and the full operation succeeds together.
+>
+> `getTraceStatus()` uses `@Transactional(readOnly = true)`: the JPA provider skips dirty-checking and may apply a read-only connection hint. This is safe because `TTL_EXPIRED_FOR_EVENT` is computed in memory at query time and is never written back to the database.
+
 ---
 
 ## 3. Testing and Validation (VDD - Data Layer)
