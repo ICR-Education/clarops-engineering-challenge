@@ -23,6 +23,9 @@ public class EventProcessorService {
     private final TraceStateRepository traceStateRepository;
     private final TraceEventRepository traceEventRepository;
 
+    // @Transactional is critical here: processEvent does two writes (trace_state + trace_event).
+    // Without it, a failure after the first save leaves the trace updated but the event ledger
+    // empty — silent data corruption that is impossible to detect or replay in production.
     @Transactional
     public void processEvent(EventRequest request) {
         // 1. Idempotency Check
@@ -102,6 +105,8 @@ public class EventProcessorService {
         traceEventRepository.saveAndFlush(event);
     }
 
+    // readOnly = true: allows the JPA provider to skip dirty-checking and use a read-only
+    // connection hint — safe here because TTL evaluation is computed in memory, never persisted.
     @Transactional(readOnly = true)
     public TraceStatusResponse getTraceStatus(java.util.UUID traceId) {
         TraceStateEntity state = traceStateRepository.findById(traceId)
