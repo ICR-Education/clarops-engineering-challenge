@@ -50,9 +50,27 @@ Then edit `docker/.env` and replace the placeholder values:
 
 ## Running the Project
 
-The project includes the `spring-boot-docker-compose` dependency. When the application starts,
-Spring Boot will automatically bring up the Docker stack located at `docker/docker-compose.yml`
-— no manual `docker-compose up` is needed.
+### First run (fresh clone or after a schema change)
+
+The SQL init scripts under `docker/init-scripts/db/` only execute once per Docker volume
+lifetime. On a fresh clone — or after any schema change — you must initialize the volume
+explicitly before starting the app:
+
+```bash
+# 1. Initialize (or re-initialize) the database volume
+cd docker && docker compose down -v && docker compose up --build -d && cd ..
+
+# 2. Start the application
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+./mvnw spring-boot:run
+```
+
+> **When to repeat step 1:** any time you pull changes that modify files under
+> `docker/init-scripts/db/`. Skipping it will cause `column X does not exist` errors at runtime.
+
+### Subsequent runs
+
+Once the volume exists with the correct schema, Spring Boot handles everything automatically:
 
 ```bash
 ./mvnw spring-boot:run
@@ -106,9 +124,19 @@ by formatting violations.
 
 ## Troubleshooting
 
+### `column "X" of relation "Y" does not exist`
+
+The Docker volume was created before a schema change was applied. Re-initialize it:
+
+```bash
+cd docker && docker compose down -v && docker compose up --build -d && cd ..
+```
+
+Then restart the app. The init scripts will run from scratch with the updated schema.
+
 ### Docker stack fails to start automatically
 
-Try bringing it up manually:
+Make sure Docker Desktop is running, then bring it up manually:
 
 ```bash
 cd docker
