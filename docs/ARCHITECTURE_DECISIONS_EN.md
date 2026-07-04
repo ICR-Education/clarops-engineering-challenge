@@ -91,3 +91,46 @@ Real integration tests (`@SpringBootTest`) have been implemented against live da
 
 *   **Test 1 (Happy Path - Read and Write):** Verifies that when saving a `TraceStateEntity`, PostgreSQL correctly processes the UUID, auto-generates timestamps, assigns the default version `0`, and successfully retrieves the row from the `clarops_challenge_schema` schema.
 *   **Test 2 (Sad Path - Optimistic Locking):** Verifies concurrency at the database level. It simulates "Thread 1" and "Thread 2" reading the exact same Trace state. When "Thread 1" saves its update, the DB increments the version. When "Thread 2" tries to save its state over the same data, JPA intercepts that Thread 2's version is stale and prevents a dirty overwrite, throwing an `ObjectOptimisticLockingFailureException`. This lock is vital for distributed transactional systems.
+
+---
+
+## 4. Known Technical Debt
+
+Decisions made consciously during the MVP sprint that favour delivery speed over technical precision. Each item is documented with the architectural reasoning behind the deferral and the correct target state.
+
+### TD-01 — `metadata TEXT` should be `metadata JSONB`
+
+**Current state:** `metadata TEXT` in `docker/init-scripts/db/02-schema.sql`.
+
+**Target state:** `metadata JSONB`.
+
+**Why it works today:** Hibernate 6's `@JdbcTypeCode(SqlTypes.JSON)` serializes and deserializes `Map<String, Object>` to and from a JSON string transparently, regardless of whether the underlying PostgreSQL column is `TEXT` or `JSONB`. The application behaves correctly in both cases.
+
+**Why it should be `JSONB`:**
+- PostgreSQL validates JSON structure on insert — malformed JSON is rejected at the DB level before it reaches the application layer.
+- Enables GIN indexing (`CREATE INDEX ON trace_event USING GIN (metadata)`) for future queries filtering or searching inside metadata fields — critical if event metadata becomes a first-class query dimension.
+- Unlocks native PostgreSQL JSON operators (`->`, `->>`, `@>`) directly in JPQL or native queries.
+- `TEXT` storing JSON is semantically dishonest — the column type does not communicate its contract to the next engineer reading the schema.
+
+**Why deferred:** During initial DDL authoring the priority was schema structure and state machine correctness. The inconsistency between the annotation and the column type was identified post-sprint and documented here rather than rushed into a schema change mid-delivery.
+
+**Fix cost:** Low. One DDL line change + volume re-initialization in dev. In production: `ALTER TABLE trace_event ALTER COLUMN metadata TYPE JSONB USING metadata::JSONB` — full table rewrite requiring a maintenance window on large tables.
+
+---
+
+### TD-02 — `@SpringBootTest` should be `@DataJpaTest` in `TraceStateRepositoryTest`
+
+**Current state:** `TraceStateRepositoryTest` uses `@SpringBootTest`, which loads the complete Spring application context (web layer, service layer, all beans) to test two repository operations.
+
+**Target state:** `@DataJpaTest` — the dedicated Spring Boot test slice for JPA repository tests. It loads only the persistence layer: entities, repositories, `EntityManager`, and the configured `DataSource`. The web context, service beans, and security configuration are excluded entirely.
+
+**Why it works today:** `@SpringBootTest` is not incorrect — it runs the tests against a valid context with the H2 in-memory database (via the `test` profile). Both tests pass reliably.
+
+**Why it should be `@DataJpaTest`:**
+- Loading the full context for repository tests is disproportionate overhead. Each test run spins up the entire application when only JPA wiring is under test.
+- `@DataJpaTest` applies `@Transactional` and rolls back after each test by default, providing cleaner test isolation without needing `@Transactional` at the class level.
+- It signals intent clearly: a reader immediately knows this is a persistence-layer test, not an integration test of the full stack.
+
+**Why deferred:** `@SpringBootTest` was the pragmatic choice to unblock integration testing once the H2 profile was introduced. The goal was green tests first; slice refinement was the natural next step that did not fit within the MVP sprint.
+
+**Note on Spring Boot 4.x import:** `@DataJpaTest` moved to `org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest` — the `.orm.` subpackage present in 3.x was removed. Already noted in Section 1 of this document.

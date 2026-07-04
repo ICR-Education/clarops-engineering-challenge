@@ -91,3 +91,46 @@ Se han implementado pruebas de integración reales (`@SpringBootTest`) con bases
 
 *   **Test 1 (Happy Path - Escritura y Lectura):** Verifica que al guardar un `TraceStateEntity`, PostgreSQL procese correctamente el UUID, auto-genere los timestamps, asigne la versión `0` por defecto y recupere exitosamente la fila del esquema `clarops_challenge_schema`.
 *   **Test 2 (Sad Path - Optimistic Locking):** Verifica la concurrencia a nivel de base de datos. Se simula a "Hilo 1" y "Hilo 2" leyendo exactamente el mismo estado del Trace. Cuando "Hilo 1" guarda su actualización, la BD incrementa la versión. Cuando "Hilo 2" intenta guardar su estado sobre la misma data, JPA intercepta que la versión que Hilo 2 tiene está obsoleta e impide una sobreescritura sucia, lanzando una `ObjectOptimisticLockingFailureException`. Este cerrojo es vital para sistemas transaccionales distribuidos.
+
+---
+
+## 4. Deuda Técnica Conocida
+
+Decisiones tomadas conscientemente durante el sprint del MVP que priorizan velocidad de entrega sobre precisión técnica. Cada ítem está documentado con el razonamiento arquitectónico detrás del diferimiento y el estado objetivo correcto.
+
+### TD-01 — `metadata TEXT` debería ser `metadata JSONB`
+
+**Estado actual:** `metadata TEXT` en `docker/init-scripts/db/02-schema.sql`.
+
+**Estado objetivo:** `metadata JSONB`.
+
+**Por qué funciona hoy:** `@JdbcTypeCode(SqlTypes.JSON)` de Hibernate 6 serializa y deserializa `Map<String, Object>` hacia y desde un string JSON de forma transparente, independientemente de si la columna PostgreSQL subyacente es `TEXT` o `JSONB`. La aplicación se comporta correctamente en ambos casos.
+
+**Por qué debería ser `JSONB`:**
+- PostgreSQL valida la estructura JSON en el insert — un JSON malformado es rechazado a nivel de BD antes de alcanzar la capa de aplicación.
+- Habilita indexado GIN (`CREATE INDEX ON trace_event USING GIN (metadata)`) para queries futuras que filtren o busquen dentro de campos de metadata — crítico si la metadata de eventos se convierte en una dimensión de consulta de primer nivel.
+- Desbloquea operadores JSON nativos de PostgreSQL (`->`, `->>`, `@>`) directamente en JPQL o queries nativas.
+- `TEXT` almacenando JSON es semánticamente deshonesto — el tipo de columna no comunica su contrato al siguiente ingeniero que lea el schema.
+
+**Por qué se difirió:** Durante la autoría inicial del DDL la prioridad fue la estructura del schema y la correctitud de la máquina de estados. La inconsistencia entre la anotación y el tipo de columna fue identificada post-sprint y documentada aquí en lugar de apresurarse a un cambio de schema en medio de la entrega.
+
+**Costo del fix:** Bajo. Un cambio de línea en el DDL + reinicialización del volumen en dev. En producción: `ALTER TABLE trace_event ALTER COLUMN metadata TYPE JSONB USING metadata::JSONB` — rewrite completo de la tabla que requiere ventana de mantenimiento en tablas grandes.
+
+---
+
+### TD-02 — `@SpringBootTest` debería ser `@DataJpaTest` en `TraceStateRepositoryTest`
+
+**Estado actual:** `TraceStateRepositoryTest` usa `@SpringBootTest`, que carga el contexto completo de Spring (capa web, capa de servicio, todos los beans) para testear dos operaciones de repositorio.
+
+**Estado objetivo:** `@DataJpaTest` — el test slice dedicado de Spring Boot para tests de repositorios JPA. Carga únicamente la capa de persistencia: entidades, repositorios, `EntityManager` y el `DataSource` configurado. El contexto web, los beans de servicio y la configuración de seguridad quedan excluidos por completo.
+
+**Por qué funciona hoy:** `@SpringBootTest` no es incorrecto — ejecuta los tests contra un contexto válido con la base de datos H2 en memoria (vía el perfil `test`). Ambos tests pasan de forma confiable.
+
+**Por qué debería ser `@DataJpaTest`:**
+- Cargar el contexto completo para tests de repositorio es overhead desproporcionado. Cada ejecución levanta la aplicación entera cuando solo se está bajo prueba el cableado JPA.
+- `@DataJpaTest` aplica `@Transactional` y hace rollback tras cada test por defecto, proporcionando aislamiento limpio sin necesidad de `@Transactional` a nivel de clase.
+- Señala la intención claramente: un lector sabe inmediatamente que es un test de la capa de persistencia, no un test de integración del stack completo.
+
+**Por qué se difirió:** `@SpringBootTest` fue la elección pragmática para desbloquear los tests de integración una vez introducido el perfil H2. El objetivo fue tener tests verdes primero; refinar el slice fue el paso natural que no alcanzó a entrar en el sprint del MVP.
+
+**Nota sobre el import en Spring Boot 4.x:** `@DataJpaTest` se movió a `org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest` — el subpaquete `.orm.` presente en 3.x fue removido. Ya anotado en la Sección 1 de este documento.
