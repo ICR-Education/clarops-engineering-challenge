@@ -1,4 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <FindBugsFilter>
-    <!-- Empty filter file to allow future exceptions while keeping SpotBugs active -->
+
+  <!--
+    EI_EXPOSE_REP / EI_EXPOSE_REP2 — Map<String, Object> metadata
+    EventRequest is a transient DTO deserialized by Jackson and consumed within a single
+    request lifecycle. No caller retains the Map reference long enough to mutate it.
+    Map.copyOf() is not used because metadata values can legitimately be null.
+  -->
+  <Match>
+    <Class name="com.clara.challenge.events.dto.EventRequest"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+
+  <!--
+    EI_EXPOSE_REP / EI_EXPOSE_REP2 — TraceEventEntity (metadata + traceState)
+    - traceState: @ManyToOne JPA relationship. Defensive copies of entity references
+      break Hibernate dirty-checking and lazy loading; mutable references are required
+      by the JPA specification.
+    - metadata: Map written once at persistence time and never read back in this flow.
+      Same reasoning as EventRequest above applies to Lombok-generated builder and setters.
+  -->
+  <Match>
+    <Class name="com.clara.challenge.events.model.TraceEventEntity"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+
+  <Match>
+    <Class name="com.clara.challenge.events.model.TraceEventEntity$TraceEventEntityBuilder"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+
 </FindBugsFilter>
