@@ -1,6 +1,6 @@
 # AI Usage & Collaboration Protocol
 
-This project was developed using a strict **Pair Programming Protocol** between a Human Tech Lead and an AI Assistant (Google Antigravity), following the highest standards of software engineering.
+This project was developed using a strict **Pair Programming Protocol** between a Human Tech Lead and an AI Assistant, following the highest standards of software engineering.
 
 ## Methodologies Applied
 
