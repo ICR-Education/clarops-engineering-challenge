@@ -10,8 +10,7 @@ SET search_path TO clarops_challenge_schema;
 -- -------------------------
 CREATE TABLE IF NOT EXISTS trace_state (
     trace_id UUID PRIMARY KEY,
-    status VARCHAR(50) NOT NULL CHECK (status IN ('STARTED', 'WAITING_OTHER_EVENT', 'COMPLETED', 'TTL_EXPIRED_FOR_EVENT')),
-    ttl_seconds INTEGER,
+    status VARCHAR(50) NOT NULL CHECK (status IN ('STARTED', 'WAITING_OTHER_EVENT', 'COMPLETED')),
     next_expected_event VARCHAR(100),
     next_expected_before TIMESTAMP WITHOUT TIME ZONE,
     last_event_name VARCHAR(100),

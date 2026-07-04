@@ -6,6 +6,7 @@ import com.clara.challenge.events.exception.InvalidEventTransitionException;
 import com.clara.challenge.events.exception.TraceNotFoundException;
 import com.clara.challenge.events.model.TraceEventEntity;
 import com.clara.challenge.events.model.TraceStateEntity;
+import com.clara.challenge.events.model.TraceStatus;
 import com.clara.challenge.events.repository.TraceEventRepository;
 import com.clara.challenge.events.repository.TraceStateRepository;
 import lombok.RequiredArgsConstructor;
@@ -37,8 +38,12 @@ public class EventProcessorService {
 
         if (state == null) {
             // New trace
-            String initialStatus = Boolean.TRUE.equals(request.finalEvent()) ? "COMPLETED" :
-                                   (request.nextExpectedEvent() != null ? "WAITING_OTHER_EVENT" : "STARTED");
+            TraceStatus initialStatus =
+                    Boolean.TRUE.equals(request.finalEvent())
+                            ? TraceStatus.COMPLETED
+                            : (request.nextExpectedEvent() != null
+                                    ? TraceStatus.WAITING_OTHER_EVENT
+                                    : TraceStatus.STARTED);
             state = TraceStateEntity.builder()
                     .traceId(request.traceId())
                     .status(initialStatus)
@@ -52,7 +57,7 @@ public class EventProcessorService {
             if (state.getNextExpectedBefore() != null && now.isAfter(state.getNextExpectedBefore())) {
                 throw new InvalidEventTransitionException("Trace " + request.traceId() + " TTL expired. Cannot process new events.");
             }
-            if ("COMPLETED".equals(state.getStatus())) {
+            if (TraceStatus.COMPLETED == state.getStatus()) {
                 throw new InvalidEventTransitionException("Trace " + request.traceId() + " is already COMPLETED.");
             }
             if (state.getNextExpectedEvent() != null && !state.getNextExpectedEvent().equals(request.eventName())) {
@@ -60,16 +65,14 @@ public class EventProcessorService {
             }
             
             // Determine next status
-            if (Boolean.TRUE.equals(request.finalEvent())) {
-                state.setStatus("COMPLETED");
-                log.info("Trace {} transitioned to COMPLETED", request.traceId());
-            } else if (request.nextExpectedEvent() != null) {
-                state.setStatus("WAITING_OTHER_EVENT");
-                log.info("Trace {} transitioned to WAITING_OTHER_EVENT. Expecting: {}", request.traceId(), request.nextExpectedEvent());
-            } else {
-                state.setStatus("STARTED");
-                log.info("Trace {} transitioned to STARTED", request.traceId());
-            }
+            TraceStatus nextStatus =
+                    Boolean.TRUE.equals(request.finalEvent())
+                            ? TraceStatus.COMPLETED
+                            : (request.nextExpectedEvent() != null
+                                    ? TraceStatus.WAITING_OTHER_EVENT
+                                    : TraceStatus.STARTED);
+            state.setStatus(nextStatus);
+            log.info("Trace {} transitioned to {}", request.traceId(), nextStatus);
             state.setUpdatedAt(now);
         }
 
@@ -104,16 +107,18 @@ public class EventProcessorService {
         TraceStateEntity state = traceStateRepository.findById(traceId)
                 .orElseThrow(() -> new TraceNotFoundException("Trace " + traceId + " not found"));
 
-        String currentStatus = state.getStatus();
-        // Lazy TTL evaluation
-        if (!"COMPLETED".equals(currentStatus) && state.getNextExpectedBefore() != null && LocalDateTime.now().isAfter(state.getNextExpectedBefore())) {
-            currentStatus = "TTL_EXPIRED_FOR_EVENT";
+        TraceStatus currentStatus = state.getStatus();
+        // Lazy TTL evaluation — TTL_EXPIRED_FOR_EVENT is never persisted, computed on read
+        if (TraceStatus.COMPLETED != currentStatus
+                && state.getNextExpectedBefore() != null
+                && LocalDateTime.now().isAfter(state.getNextExpectedBefore())) {
+            currentStatus = TraceStatus.TTL_EXPIRED_FOR_EVENT;
             log.warn("Trace {} TTL EXPIRED. Expected event didn't arrive before {}", traceId, state.getNextExpectedBefore());
         }
 
         return new TraceStatusResponse(
                 state.getTraceId(),
-                currentStatus,
+                currentStatus.name(),
                 state.getLastEventName(),
                 state.getLastEventResult(),
                 state.getNextExpectedEvent(),

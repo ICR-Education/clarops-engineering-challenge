@@ -2,17 +2,18 @@ package com.clara.challenge.events.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import java.time.LocalDateTime;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "trace_state")
@@ -27,11 +28,9 @@ public class TraceStateEntity {
     @Column(name = "trace_id")
     private UUID traceId;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 50)
-    private String status;
-
-    @Column(name = "ttl_seconds")
-    private Integer ttlSeconds;
+    private TraceStatus status;
 
     @Column(name = "next_expected_event", length = 100)
     private String nextExpectedEvent;

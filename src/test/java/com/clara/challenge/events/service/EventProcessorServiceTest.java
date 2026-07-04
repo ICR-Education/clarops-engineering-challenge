@@ -10,6 +10,7 @@ import com.clara.challenge.events.dto.TraceStatusResponse;
 import com.clara.challenge.events.exception.InvalidEventTransitionException;
 import com.clara.challenge.events.exception.TraceNotFoundException;
 import com.clara.challenge.events.model.TraceStateEntity;
+import com.clara.challenge.events.model.TraceStatus;
 import com.clara.challenge.events.repository.TraceEventRepository;
 import com.clara.challenge.events.repository.TraceStateRepository;
 import java.time.LocalDateTime;
@@ -65,7 +66,7 @@ class EventProcessorServiceTest {
 
     ArgumentCaptor<TraceStateEntity> captor = ArgumentCaptor.forClass(TraceStateEntity.class);
     verify(traceStateRepository).saveAndFlush(captor.capture());
-    assertThat(captor.getValue().getStatus()).isEqualTo("STARTED");
+    assertThat(captor.getValue().getStatus()).isEqualTo(TraceStatus.STARTED);
     assertThat(captor.getValue().getEventsReceived()).isEqualTo(1);
   }
 
@@ -86,7 +87,7 @@ class EventProcessorServiceTest {
 
     ArgumentCaptor<TraceStateEntity> captor = ArgumentCaptor.forClass(TraceStateEntity.class);
     verify(traceStateRepository).saveAndFlush(captor.capture());
-    assertThat(captor.getValue().getStatus()).isEqualTo("WAITING_OTHER_EVENT");
+    assertThat(captor.getValue().getStatus()).isEqualTo(TraceStatus.WAITING_OTHER_EVENT);
     assertThat(captor.getValue().getNextExpectedEvent()).isEqualTo("KYC_APPROVED");
     assertThat(captor.getValue().getNextExpectedBefore()).isNotNull();
   }
@@ -108,7 +109,7 @@ class EventProcessorServiceTest {
 
     ArgumentCaptor<TraceStateEntity> captor = ArgumentCaptor.forClass(TraceStateEntity.class);
     verify(traceStateRepository).saveAndFlush(captor.capture());
-    assertThat(captor.getValue().getStatus()).isEqualTo("COMPLETED");
+    assertThat(captor.getValue().getStatus()).isEqualTo(TraceStatus.COMPLETED);
   }
 
   // ── Existing trace transitions ────────────────────────────────────────────────
@@ -119,7 +120,7 @@ class EventProcessorServiceTest {
     TraceStateEntity existing =
         TraceStateEntity.builder()
             .traceId(traceId)
-            .status("WAITING_OTHER_EVENT")
+            .status(TraceStatus.WAITING_OTHER_EVENT)
             .nextExpectedEvent("KYC_APPROVED")
             .nextExpectedBefore(LocalDateTime.now().plusHours(1))
             .eventsReceived(1)
@@ -137,7 +138,7 @@ class EventProcessorServiceTest {
 
     eventProcessorService.processEvent(request);
 
-    assertThat(existing.getStatus()).isEqualTo("COMPLETED");
+    assertThat(existing.getStatus()).isEqualTo(TraceStatus.COMPLETED);
     assertThat(existing.getEventsReceived()).isEqualTo(2);
   }
 
@@ -147,7 +148,7 @@ class EventProcessorServiceTest {
     TraceStateEntity existing =
         TraceStateEntity.builder()
             .traceId(traceId)
-            .status("STARTED")
+            .status(TraceStatus.STARTED)
             .eventsReceived(1)
             .updatedAt(LocalDateTime.now())
             .build();
@@ -163,7 +164,7 @@ class EventProcessorServiceTest {
 
     eventProcessorService.processEvent(request);
 
-    assertThat(existing.getStatus()).isEqualTo("WAITING_OTHER_EVENT");
+    assertThat(existing.getStatus()).isEqualTo(TraceStatus.WAITING_OTHER_EVENT);
     assertThat(existing.getNextExpectedEvent()).isEqualTo("CARD_ISSUED");
   }
 
@@ -173,7 +174,7 @@ class EventProcessorServiceTest {
     TraceStateEntity existing =
         TraceStateEntity.builder()
             .traceId(traceId)
-            .status("COMPLETED")
+            .status(TraceStatus.COMPLETED)
             .eventsReceived(2)
             .build();
     EventRequest request =
@@ -198,7 +199,7 @@ class EventProcessorServiceTest {
     TraceStateEntity existing =
         TraceStateEntity.builder()
             .traceId(traceId)
-            .status("WAITING_OTHER_EVENT")
+            .status(TraceStatus.WAITING_OTHER_EVENT)
             .nextExpectedEvent("CORRECT_EVENT")
             .nextExpectedBefore(LocalDateTime.now().plusHours(1))
             .build();
@@ -218,7 +219,7 @@ class EventProcessorServiceTest {
     TraceStateEntity existing =
         TraceStateEntity.builder()
             .traceId(traceId)
-            .status("WAITING_OTHER_EVENT")
+            .status(TraceStatus.WAITING_OTHER_EVENT)
             .nextExpectedBefore(LocalDateTime.now().minusMinutes(5))
             .build();
 
@@ -235,7 +236,7 @@ class EventProcessorServiceTest {
     TraceStateEntity existing =
         TraceStateEntity.builder()
             .traceId(traceId)
-            .status("WAITING_OTHER_EVENT")
+            .status(TraceStatus.WAITING_OTHER_EVENT)
             .nextExpectedEvent("KYC_APPROVED")
             .nextExpectedBefore(LocalDateTime.now().plusHours(1))
             .lastEventName("ACCOUNT_CREATED")

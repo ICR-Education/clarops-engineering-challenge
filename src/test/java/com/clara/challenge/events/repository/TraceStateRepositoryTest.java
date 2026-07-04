@@ -1,6 +1,7 @@
 package com.clara.challenge.events.repository;
 
 import com.clara.challenge.events.model.TraceStateEntity;
+import com.clara.challenge.events.model.TraceStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -32,7 +33,7 @@ class TraceStateRepositoryTest {
         UUID traceId = UUID.randomUUID();
         TraceStateEntity entity = TraceStateEntity.builder()
                 .traceId(traceId)
-                .status("STARTED")
+                .status(TraceStatus.STARTED)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .eventsReceived(0)
@@ -53,7 +54,7 @@ class TraceStateRepositoryTest {
         UUID traceId = UUID.randomUUID();
         TraceStateEntity initialEntity = TraceStateEntity.builder()
                 .traceId(traceId)
-                .status("STARTED")
+                .status(TraceStatus.STARTED)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .eventsReceived(0)
@@ -70,11 +71,11 @@ class TraceStateRepositoryTest {
         entityManager.detach(thread2Copy);
 
         // Thread 1 updates and saves successfully
-        thread1Copy.setStatus("WAITING_OTHER_EVENT");
+        thread1Copy.setStatus(TraceStatus.WAITING_OTHER_EVENT);
         traceStateRepository.saveAndFlush(thread1Copy);
 
         // Thread 2 tries to update the stale data
-        thread2Copy.setStatus("COMPLETED");
+        thread2Copy.setStatus(TraceStatus.COMPLETED);
 
         // Assert
         assertThrows(ObjectOptimisticLockingFailureException.class, () -> traceStateRepository.saveAndFlush(thread2Copy));
